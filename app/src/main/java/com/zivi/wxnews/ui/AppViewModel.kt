@@ -96,7 +96,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         alert = Feed(r.alert, System.currentTimeMillis(), null, false)
                         withContext(Dispatchers.IO) { Disk.save(ctx, "alert.json", r.alert?.toJson() ?: "none") }
                     } else {
-                        alert = Feed(alert.data, alert.at, "couldn't read the Met Office website", false)
+                        alert = Feed(alert.data, alert.at, "the page didn't load", false)
                     }
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e

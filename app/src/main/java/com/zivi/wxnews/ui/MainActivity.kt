@@ -80,7 +80,8 @@ fun AppRoot(vm: AppViewModel, start: Int) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Row(
-                Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 10.dp, bottom = 4.dp),
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
+                    .padding(start = 20.dp, end = 8.dp, top = 10.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {

@@ -70,7 +70,8 @@ object Gdacs {
     fun parse(xml: String): List<GdacsEvent> {
         val p = Xml.newPullParser()
         p.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
-        p.setInput(StringReader(xml))
+        // The feed starts with an invisible byte-order mark, which the parser rejects.
+        p.setInput(StringReader(xml.trimStart('\uFEFF', ' ', '\n', '\r', '\t')))
         val out = ArrayList<GdacsEvent>()
         var f: HashMap<String, String>? = null
         var tag = ""

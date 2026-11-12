@@ -87,7 +87,7 @@ object MetOffice {
 
     suspend fun read(ctx: Context): Result {
         val text = withTimeoutOrNull(40_000L) { pageText(ctx.applicationContext) } ?: ""
-        Log.i("WxNews", "Met page text: ${text.length} chars")
+        Log.i("WxNews", "Met page text: ${text.length} chars: " + text.take(1500).replace('\n', '|'))
         if (text.length < 200) return Result(null, false)
         return Result(parse(text, ZonedDateTime.now(MVT)), true)
     }

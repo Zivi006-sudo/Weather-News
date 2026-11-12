@@ -88,7 +88,7 @@ fun flags(w: RegionWx): List<Pair<String, Color>> {
         if (!maxWave.isNaN() && maxWave >= 2.5f) out += "Very rough seas" to Color(0xFFFF8C2B)
         else if (!maxWave.isNaN() && maxWave >= 1.25f) out += "Rough seas" to Amber
     }
-    if (!o.minVis.isNaN() && o.minVis < 3000) out += "Low visibility" to Amber
+    if (!o.minVis.isNaN() && o.minVis < 2000) out += "Low visibility" to Amber
     return out
 }
 
