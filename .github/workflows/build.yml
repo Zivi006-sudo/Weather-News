@@ -70,6 +70,13 @@ jobs:
         with:
           name: screenshots
           path: shots/
+      - name: Keep the screenshots with the build
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete test-shots -y --cleanup-tag || true
+          gh release create test-shots shots/* --prerelease --title "Emulator test screenshots" --notes "From the latest build (${GITHUB_SHA}). Not an app download."
 
   publish:
     needs: build
