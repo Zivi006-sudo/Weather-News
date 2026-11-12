@@ -56,7 +56,11 @@ fun WorldScreen(vm: AppViewModel, pad: PaddingValues) {
         (all ?: emptyList()).filter { filter.isEmpty() || it.type == filter }
             .groupBy { it.type + "|" + it.title + "|" + it.country }
             .values.map { g -> g.maxBy { it.sortTime } to g.size }
-            .sortedWith(compareByDescending<Pair<GdacsEvent, Int>> { it.first.levelRank }.thenByDescending { it.first.sortTime })
+            // Ongoing events first (most serious, then newest), ended ones after.
+            .sortedWith(
+                compareByDescending<Pair<GdacsEvent, Int>> { it.first.current }
+                    .thenByDescending { it.first.levelRank }.thenByDescending { it.first.sortTime }
+            )
     }
     val indian = shown.filter { it.first.indianOcean }
     val rest = shown.filter { !it.first.indianOcean }
@@ -88,7 +92,7 @@ fun WorldScreen(vm: AppViewModel, pad: PaddingValues) {
             item {
                 Note(
                     "From GDACS, the Global Disaster Alert and Coordination System (European Commission and United Nations). " +
-                        "Green, orange and red show the expected impact on people; orange and red are listed first."
+                        "Green, orange and red show the expected impact on people. Ongoing events come first, most serious at the top."
                 )
             }
         }
