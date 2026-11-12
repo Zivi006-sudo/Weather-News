@@ -109,7 +109,7 @@ object MetOffice {
     private fun parseTime(s: String, now: ZonedDateTime): ZonedDateTime? = try {
         val p = s.trim().split(Regex("\\s+"))
         val day = p[0].toInt()
-        val mon = month(p[1]) ?: return null
+        val mon = month(p[1]) ?: throw IllegalArgumentException("month")
         val (h, mi) = p[2].split(":").map { it.toInt() }
         val candidates = listOf(now.year - 1, now.year, now.year + 1).map {
             ZonedDateTime.of(LocalDateTime.of(it, mon, day, h, mi), MVT)
