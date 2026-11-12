@@ -52,11 +52,14 @@ fun WorldScreen(vm: AppViewModel, pad: PaddingValues) {
     var filter by rememberSaveable { mutableStateOf("") }
     val all = vm.world.data
     val shown = remember(all, filter) {
+        // The feed repeats the same notice for each part of an event (e.g. every fire area); show it once with a count.
         (all ?: emptyList()).filter { filter.isEmpty() || it.type == filter }
-            .sortedWith(compareByDescending<GdacsEvent> { it.sortTime })
+            .groupBy { it.type + "|" + it.title + "|" + it.country }
+            .values.map { g -> g.maxBy { it.sortTime } to g.size }
+            .sortedWith(compareByDescending<Pair<GdacsEvent, Int>> { it.first.levelRank }.thenByDescending { it.first.sortTime })
     }
-    val indian = shown.filter { it.indianOcean }
-    val rest = shown.filter { !it.indianOcean }
+    val indian = shown.filter { it.first.indianOcean }
+    val rest = shown.filter { !it.first.indianOcean }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -78,14 +81,14 @@ fun WorldScreen(vm: AppViewModel, pad: PaddingValues) {
         if (all != null) {
             item { SectionTitle("Indian Ocean region · ${indian.size}") }
             if (indian.isEmpty()) item { Note("Nothing reported in the Indian Ocean region.") }
-            items(indian, key = { "i" + it.link + it.title }) { EventCard(it) }
+            items(indian, key = { "i" + it.first.link + it.first.title + it.first.country }) { EventCard(it.first, it.second) }
             item { SectionTitle("Rest of the world · ${rest.size}") }
             if (rest.isEmpty()) item { Note("Nothing reported.") }
-            items(rest, key = { "r" + it.link + it.title }) { EventCard(it) }
+            items(rest, key = { "r" + it.first.link + it.first.title + it.first.country }) { EventCard(it.first, it.second) }
             item {
                 Note(
                     "From GDACS, the Global Disaster Alert and Coordination System (European Commission and United Nations). " +
-                        "Green, orange and red show the expected impact on people."
+                        "Green, orange and red show the expected impact on people; orange and red are listed first."
                 )
             }
         }
@@ -93,7 +96,7 @@ fun WorldScreen(vm: AppViewModel, pad: PaddingValues) {
 }
 
 @Composable
-fun EventCard(e: GdacsEvent) {
+fun EventCard(e: GdacsEvent, count: Int = 1) {
     val ctx = LocalContext.current
     var open by rememberSaveable(e.link + e.title) { mutableStateOf(false) }
     Card(Modifier.animateContentSize().clickable { open = !open }) {
@@ -101,7 +104,7 @@ fun EventCard(e: GdacsEvent) {
             Box(Modifier.size(10.dp).clip(CircleShape).background(gdacsColor(e.level)))
             Spacer(Modifier.width(8.dp))
             Text(
-                e.typeName.uppercase() + (if (e.current) "" else " · ENDED"),
+                e.typeName.uppercase() + (if (count > 1) " · $count REPORTS" else "") + (if (e.current) "" else " · ENDED"),
                 fontSize = 12.sp, fontWeight = FontWeight.Bold, color = gdacsColor(e.level), letterSpacing = 0.8.sp,
             )
             Spacer(Modifier.weight(1f))

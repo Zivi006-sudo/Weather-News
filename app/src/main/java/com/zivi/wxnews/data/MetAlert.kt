@@ -76,7 +76,7 @@ class MetAlert(
  * as: "<level> Alert", the message, "Area" and the atolls, "Time" and "21 Oct 20:30 — 22 Oct 01:30".
  */
 object MetOffice {
-    const val SITE = "https://www.meteorology.gov.mv/"
+    const val SITE = "https://v2.meteorology.gov.mv/"
 
     class Result(val alert: MetAlert?, val pageRead: Boolean)
 
@@ -86,11 +86,16 @@ object MetOffice {
     )
 
     suspend fun read(ctx: Context): Result {
-        val text = withTimeoutOrNull(40_000L) { pageText(ctx.applicationContext) } ?: ""
+        val text = withTimeoutOrNull(45_000L) { pageText(ctx.applicationContext) } ?: ""
         Log.i("WxNews", "Met page text: ${text.length} chars: " + text.take(1500).replace('\n', '|'))
-        if (text.length < 200) return Result(null, false)
+        if (text.length < 200 || isCheckPage(text)) return Result(null, false)
         return Result(parse(text, ZonedDateTime.now(MVT)), true)
     }
+
+    /** The site's bot check ("Performing security verification"), which clears by itself in a normal browser. */
+    private fun isCheckPage(t: String): Boolean =
+        t.contains("security verification", true) || t.contains("Just a moment", true) || t.contains("verify you are", true) ||
+            t.contains("verifies you are not a bot", true)
 
     fun parse(text: String, now: ZonedDateTime): MetAlert? {
         val m = ALERT.find(text) ?: return null
@@ -141,11 +146,13 @@ object MetOffice {
             var steady = 0
             var tries = 0
             // Look once a second until the alert shows up, or the page stops changing.
-            while (tries < 30 && steady < 4) {
+            while (tries < 35 && steady < 4) {
                 delay(1000)
                 tries++
                 val t = evaluate(web)
                 if (ALERT.containsMatchIn(t)) return@withContext t
+                // While the bot check is showing, keep waiting for the real page.
+                if (isCheckPage(t)) { steady = 0; continue }
                 if (t.length > 200 && t.length == best.length) steady++ else steady = 0
                 if (t.length >= best.length) best = t
             }
