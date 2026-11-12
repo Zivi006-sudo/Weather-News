@@ -1,0 +1,93 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build optimised APK
+        run: |
+          chmod +x gradlew
+          set +e
+          ./gradlew assembleRelease --no-daemon --console=plain > build.log 2>&1
+          code=$?
+          tail -n 80 build.log
+          if [ $code -ne 0 ]; then
+            ( grep -E "^e: " build.log; grep -vE "^> Task|^e: " build.log | grep -E "error:|ERROR:|What went wrong|Could not|^> " ) | head -n 9 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+          fi
+          exit $code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: app/build/outputs/apk/release/app-release.apk
+
+  # Opens the app in an Android emulator, visits every tab and takes screenshots, so each build is checked
+  # with real data before it is installed.
+  screenshots:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run app in emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/shots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: shots/
+
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+      - name: Publish this version and update "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep -oE 'versionName = "[^"]+"' app/build.gradle.kts | cut -d'"' -f2)
+          cp app-release.apk WeatherNews.apk
+          # Every version is kept as its own release, so an older one can always be reinstalled.
+          gh release delete "v$VER" -y --cleanup-tag || true
+          gh release create "v$VER" WeatherNews.apk --title "Weather News $VER" --notes "Built from ${GITHUB_SHA}"
+          gh release delete latest -y --cleanup-tag || true
+          gh release create latest WeatherNews.apk --title "Weather News (latest build: $VER)" --notes "Version $VER. Older versions are listed under Releases." --latest

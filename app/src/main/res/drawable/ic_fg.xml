@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- page of a newspaper -->
+    <path android:fillColor="#F2F7FB"
+        android:pathData="M34,34 L74,34 L74,76 L34,76 Z" />
+    <!-- alert triangle -->
+    <path android:fillColor="#FFB84D"
+        android:pathData="M54,39 L66,58 L42,58 Z" />
+    <path android:fillColor="#0B3B4F"
+        android:pathData="M53,45 L55,45 L55,52 L53,52 Z M53,54 L55,54 L55,56 L53,56 Z" />
+    <!-- headline lines -->
+    <path android:strokeColor="#5CC8FF" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M40,64 L68,64 M40,70 L60,70" />
+</vector>
